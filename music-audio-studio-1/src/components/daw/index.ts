@@ -1,0 +1,20 @@
+export { DAWInterface } from './DAWInterface';
+export { LandingPage } from './LandingPage';
+export { TransportControls } from './TransportControls';
+export { Timeline } from './Timeline';
+export { AIToolkit } from './AIToolkit';
+export { MixerPanel } from './MixerPanel';
+export { ExportModal } from './ExportModal';
+export { TrackHeader } from './TrackHeader';
+export { AudioClipComponent } from './AudioClipComponent';
+export { Waveform, generateFakeWaveform } from './Waveform';
+export { FileUploadZone } from './FileUploadZone';
+export { EffectsRack } from './EffectsRack';
+export { EQPanel } from './EQPanel';
+export { TrackDetailsPanel } from './TrackDetailsPanel';
+export { KeyboardShortcutsModal } from './KeyboardShortcutsModal';
+export { WelcomeModal } from './WelcomeModal';
+export { SpectrumAnalyzer } from './SpectrumAnalyzer';
+export { Metronome } from './Metronome';
+export { ProjectBrowser } from './ProjectBrowser';
+
