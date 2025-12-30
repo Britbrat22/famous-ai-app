@@ -9,26 +9,48 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Debug file permissions
+      run: |
+        echo "=== Current directory ==="
+        pwd
+        echo "=== Directory contents ==="
+        ls -la
+        echo "=== Check for lock files ==="
+        ls -la package* yarn* 2>/dev/null || echo "No lock files found"
+        echo "=== File permissions ==="
+        ls -la src/ 2>/dev/null || echo "No src directory found"
+    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
     
-    - name: Install dependencies (using npm install)
-      run: npm install
-    
-    - name: Build application
-      run: npm run build
-    
-    - name: Verify build output
+    - name: Install dependencies with debug
       run: |
-        echo "=== Build files ==="
-        ls -la dist/
-        echo "=== Check index.html ==="
-        head -10 dist/index.html
+        echo "=== Installing dependencies ==="
+        npm install --verbose || echo "npm install failed with code $?"
+        echo "=== After install ==="
+        ls -la node_modules/ 2>/dev/null | head -5 || echo "No node_modules found"
+    
+    - name: Build with debug
+      run: |
+        echo "=== Starting build ==="
+        npm run build --verbose || echo "Build failed with code $?"
+        echo "=== After build attempt ==="
+        ls -la dist/ 2>/dev/null || echo "No dist directory created"
+    
+    - name: Check system limits
+      run: |
+        echo "=== Disk space ==="
+        df -h
+        echo "=== Memory usage ==="
+        free -h
+        echo "=== Process limits ==="
+        ulimit -a
     
     - name: Deploy to GitHub Pages
+      if: success()
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
