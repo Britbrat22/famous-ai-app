@@ -18,18 +18,19 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    - name: Build app
+    - name: Build application
       run: npm run build
     
-    - name: Check what was built
+    - name: Verify build output
       run: |
-        echo "=== Build output ==="
+        echo "=== Build files ==="
         ls -la dist/
-        echo "=== HTML file ==="
-        cat dist/index.html
+        echo "=== Check index.html ==="
+        head -10 dist/index.html
     
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./dist
+        force_orphan: true
