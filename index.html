@@ -4,7 +4,6 @@ let isRecording = false;
 let metronomeInterval = null;
 let nextTrackId = 1;
 
-// Create audio context safely
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 const audioContext = AudioCtx ? new AudioCtx() : null;
 
@@ -45,7 +44,6 @@ function setTrackVolume(id, value) {
   const v = Math.max(0, Math.min(100, Number(value)));
   if (!Number.isFinite(v)) return;
   t.volume = v;
-  // If you later route audio per track, apply gain here.
   updateTrackDisplay();
 }
 
@@ -79,14 +77,33 @@ async function toggleMetronome() {
     return;
   }
 
-  // Ensure audio can play (needs user gesture)
   if (audioContext.state === 'suspended') {
     try { await audioContext.resume(); } catch (e) { console.warn(e); }
   }
+
+  const bpm = 120;
+  const intervalMs = (60 / bpm) * 1000;
 
   if (metronomeInterval) {
     clearInterval(metronomeInterval);
     metronomeInterval = null;
     if (label) label.textContent = '🔇 Metronome: OFF';
   } else {
-    const bpm = 120;
+    metronomeInterval = setInterval(() => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+
+      osc.frequency.value = 1000; // beep frequency
+      gain.gain.value = 0.2;
+
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+
+      osc.start();
+      osc.stop(audioContext.currentTime + 0.1); // short tick
+    }, intervalMs);
+
+    if (label) label.textContent = '🔔 Metronome: ON';
+  }
+}
+</script>
