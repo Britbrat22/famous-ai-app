@@ -1,56 +1,92 @@
+<script>
 let tracks = [];
 let isRecording = false;
-let metronomeInterval;
+let metronomeInterval = null;
+let nextTrackId = 1;
+
+// Create audio context safely
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+const audioContext = AudioCtx ? new AudioCtx() : null;
 
 function addTrack() {
-    const track = {
-        id: tracks.length + 1,
-        name: `Track ${tracks.length + 1}`,
-        volume: 75,
-        pan: 0,
-        muted: false,
-        solo: false
-    };
-    tracks.push(track);
-    updateTrackDisplay();
+  const track = {
+    id: nextTrackId++,
+    name: `Track ${tracks.length + 1}`,
+    volume: 75,
+    pan: 0,
+    muted: false,
+    solo: false
+  };
+  tracks.push(track);
+  updateTrackDisplay();
+}
+
+function getTrackById(id) {
+  return tracks.find(t => t.id === Number(id)) || null;
+}
+
+function toggleMute(id) {
+  const t = getTrackById(id);
+  if (!t) return;
+  t.muted = !t.muted;
+  updateTrackDisplay();
+}
+
+function toggleSolo(id) {
+  const t = getTrackById(id);
+  if (!t) return;
+  t.solo = !t.solo;
+  updateTrackDisplay();
+}
+
+function setTrackVolume(id, value) {
+  const t = getTrackById(id);
+  if (!t) return;
+  const v = Math.max(0, Math.min(100, Number(value)));
+  if (!Number.isFinite(v)) return;
+  t.volume = v;
+  // If you later route audio per track, apply gain here.
+  updateTrackDisplay();
 }
 
 function updateTrackDisplay() {
-    const trackContainer = document.getElementById('tracks');
-    trackContainer.innerHTML = tracks.map(track => `
-        <div class="track">
-            <h4>${track.name}</h4>
-            <button onclick="toggleMute(${track.id})">${track.muted ? '🔇' : '🔊'}</button>
-            <button onclick="toggleSolo(${track.id})">${track.solo ? '⭐' : '○'}</button>
-            <label>Vol: <input type="range" min="0" max="100" value="${track.volume}" 
-                   onchange="setTrackVolume(${track.id}, this.value)"></label>
-        </div>
-    `).join('');
+  const trackContainer = document.getElementById('tracks');
+  if (!trackContainer) {
+    console.warn('Missing element: #tracks');
+    return;
+  }
+
+  trackContainer.innerHTML = tracks.map(track => `
+    <div class="track" data-track-id="${track.id}">
+      <h4>${track.name}</h4>
+      <button type="button" onclick="toggleMute(${track.id})">${track.muted ? '🔇' : '🔊'}</button>
+      <button type="button" onclick="toggleSolo(${track.id})">${track.solo ? '⭐' : '○'}</button>
+      <label>
+        Vol:
+        <input type="range" min="0" max="100" value="${track.volume}"
+          oninput="setTrackVolume(${track.id}, this.value)">
+      </label>
+    </div>
+  `).join('');
 }
 
-function toggleMetronome() {
-    if (metronomeInterval) {
-        clearInterval(metronomeInterval);
-        metronomeInterval = null;
-        document.getElementById('metronome').textContent = '🔇 Metronome: OFF';
-    } else {
-        const interval = 60000 / 120; // 120 BPM
-        metronomeInterval = setInterval(() => {
-            playClick();
-        }, interval);
-        document.getElementById('metronome').textContent = '🔊 Metronome: ON';
-    }
-}
+async function toggleMetronome() {
+  const label = document.getElementById('metronome');
+  if (!label) console.warn('Missing element: #metronome');
 
-function playClick() {
-    const osc = audioContext.createOscillator();
-    const gain = audioContext.createGain();
-    osc.connect(gain);
-    gain.connect(audioContext.destination);
-    osc.frequency.setValueAtTime(1000, audioContext.currentTime);
-    gain.gain.setValueAtTime(0.1, audioContext.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.1);
-    osc.start();
-    osc.stop(audioContext.currentTime + 0.1);
-}
-</script>
+  if (!audioContext) {
+    console.warn('Web Audio not supported in this browser.');
+    return;
+  }
+
+  // Ensure audio can play (needs user gesture)
+  if (audioContext.state === 'suspended') {
+    try { await audioContext.resume(); } catch (e) { console.warn(e); }
+  }
+
+  if (metronomeInterval) {
+    clearInterval(metronomeInterval);
+    metronomeInterval = null;
+    if (label) label.textContent = '🔇 Metronome: OFF';
+  } else {
+    const bpm = 120;
